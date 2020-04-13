@@ -8,12 +8,14 @@ def writing_data(filename, initial_speed, final_speed, name, totaltime):
                 "The final time was "+ "{:.3f}".format(final_speed)+"\n"+
                 "The total time was "+ "{:.3f}".format(totaltime)+"\n\n")
 
-def metric_calculations(initial_time, final_time):
-    return initial_time, final_time
+def exit_velocity(exit_time,distance):
+    exit_speed = distance/exit_time
+    return exit_speed
 
 def main():
     total_frames = 0
     total_time = 0
+    exit_time = 0
     initialframes = 0
     framerate = 0
     prev = (0, 0, 0, 0)
@@ -62,11 +64,11 @@ def main():
             # initialize the set of information we'll be displaying on
             # the frame
         initial_time = initialframes/framerate
-        Exit_time = (total_frames-initialframes)/framerate
+        post_time = (total_frames-initialframes)/framerate
         total_time = total_frames/framerate
         info = [
             ("Success", "Yes" if success else "No"),
-            ("Final Time", "{:.3f}".format(Exit_time)),
+            ("Post Hit Time", "{:.3f}".format(post_time)),
             ("Total Time", "{:.3f}".format(total_time))
         ]
         # loop over the info tuples and draw them on our frame
@@ -90,6 +92,6 @@ def main():
 
     vs.release()
     cv2.destroyAllWindows()
-    initial_velocity, final_velocity = metric_calculations(initial_time, Exit_time)
-    writing_data(file, initial_velocity, final_velocity, player_name, total_time)
+    initial_velocity, final_velocity = exit_velocity(initial_time, 10)
+    writing_data(file, initial_velocity, post_time, player_name, total_time)
 main()
