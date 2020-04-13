@@ -33,6 +33,8 @@ def main():
     (H, _) = frame.shape[:2]
     initBB = cv2.selectROI("Frame", frame, fromCenter=False, showCrosshair=True)
     inital_box = tracker.init(frame, initBB)
+    writer = None
+    fourcc = cv2.VideoWriter_fourcc(*args["codec"])
     while True:
         # grab the current frame, then handle if we are using a
         # VideoStream or VideoCapture object
@@ -44,7 +46,13 @@ def main():
         # resize the frame (so we can process it faster) and grab the
         # frame dimensions
         frame = imutils.resize(frame, width=1400, height=1300)
-        (H, _) = frame.shape[:2]
+        (H, W) = frame.shape[:2]
+        if writer is None:
+		# store the image dimensions, initialize the video writer,
+		# and construct the zeros array
+		writer = cv2.VideoWriter(args["output"], fourcc, args["fps"],
+			(W * 2, H * 2), True)
+
         if initBB is not None:
             # grab the new bounding box coordinates of the object
             (success, box) = tracker.update(frame)
@@ -76,6 +84,7 @@ def main():
             text = "{}: {}".format(k, v)
             cv2.putText(frame, text, (10, H - ((i * 20) + 20)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        writer.write(frame)
         cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
         # if the 'q' key is selected, we are going to quit the program
