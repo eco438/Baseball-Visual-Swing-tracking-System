@@ -34,7 +34,6 @@ def main():
     initBB = cv2.selectROI("Frame", frame, fromCenter=False, showCrosshair=True)
     inital_box = tracker.init(frame, initBB)
     writer = None
-    fourcc = cv2.VideoWriter_fourcc(*args["codec"])
     while True:
         # grab the current frame, then handle if we are using a
         # VideoStream or VideoCapture object
@@ -48,11 +47,10 @@ def main():
         frame = imutils.resize(frame, width=1400, height=1300)
         (H, W) = frame.shape[:2]
         if writer is None:
+            if initBB is not None:
 		# store the image dimensions, initialize the video writer,
 		# and construct the zeros array
-		writer = cv2.VideoWriter(args["output"], fourcc, args["fps"],
-			(W * 2, H * 2), True)
-
+	            writer = cv2.VideoWriter("result.avi",cv2.VideoWriter_fourcc('M','J','P','G'),10,(W * 2, H * 2), True)
         if initBB is not None:
             # grab the new bounding box coordinates of the object
             (success, box) = tracker.update(frame)
