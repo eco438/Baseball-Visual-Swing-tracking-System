@@ -1,16 +1,16 @@
 import argparse
 import imutils
 import cv2
+from scipy.spatial import distance as dist
+import math
 
 def writing_data(filename, initial_speed, final_speed, name, totaltime):
     with open(filename, "a+") as f:
         f.write("The name of the player is "+name+"\n"+
                 "The final time was "+ "{:.3f}".format(final_speed)+"\n"+
                 "The total time was "+ "{:.3f}".format(totaltime)+"\n\n")
+# 3 inches equals 30 frames therefore 1 pixels is 0.1 inches which is 0.00254
 
-def exit_velocity(exit_time,distance):
-    exit_speed = distance/exit_time
-    return exit_speed
 
 def main():
     total_frames = 0
@@ -18,7 +18,10 @@ def main():
     exit_time = 0
     initialframes = 0
     framerate = 0
+    distance = 0
     prev = (0, 0, 0, 0)
+    prevcenter = (0,0)
+    array = [0]
     print("Enter the name of file you want to input the data: ")
     file = input()
     print("Enter the name of the player: ")
@@ -34,6 +37,7 @@ def main():
     initBB = cv2.selectROI("Frame", frame, fromCenter=False, showCrosshair=True)
     inital_box = tracker.init(frame, initBB)
     writer = None
+    codec = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')    #works, large 
     while True:
         # grab the current frame, then handle if we are using a
         # VideoStream or VideoCapture object
@@ -47,10 +51,7 @@ def main():
         frame = imutils.resize(frame, width=1400, height=1300)
         (H, W) = frame.shape[:2]
         if writer is None:
-            if initBB is not None:
-		# store the image dimensions, initialize the video writer,
-		# and construct the zeros array
-	            writer = cv2.VideoWriter("result.avi",cv2.VideoWriter_fourcc('M','J','P','G'),10,(W * 2, H * 2), True)
+	        writer = cv2.VideoWriter("result.mp4v",codec,20,(H, W), True)
         if initBB is not None:
             # grab the new bounding box coordinates of the object
             (success, box) = tracker.update(frame)
@@ -58,15 +59,24 @@ def main():
             if success:
                 (x, y, w, h) = [int(v) for v in box]
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                framerate = int(vs.get(cv2.CAP_PROP_FRAME_COUNT))
+                framerate = int(vs.get(cv2.CAP_PROP_FPS))
                 total_frames += 1 #total frames with the ball in the video
                 #finds the frame when the ball gets intially hits
                 #finds the time when the bounding box in the two frames are really close
                 (x, y, w, h) = box
+                center =  ((x +w)/2 ,(y + h)/2) 
                 (x2, y2, _, _) = prev
-                if(abs(y2-y) <= 1.5 and abs(x2-x) <= 10):
-                    initialframes = total_frames
+                (x_distance,y_distance) = center
+                (x2_distance,y2_distance) = prevcenter
+                if(x2_distance!= 0):
+                    if(x_distance> x2_distance):
+                        X_value = (x_distance-x2_distance)
+                        Y_value = (y_distance-y2_distance)                      
+                        dist = math.sqrt((X_value*0.304)**2 + (Y_value*0.304)**2  )
+                        velocity = (dist/(1/framerate))
+                        array.append(velocity)
                 prev = box
+                prevcenter = center
             # initialize the set of information we'll be displaying on
             # the frame
         initial_time = initialframes/framerate
@@ -74,7 +84,7 @@ def main():
         total_time = total_frames/framerate
         info = [
             ("Success", "Yes" if success else "No"),
-            ("Post Hit Time", "{:.3f}".format(post_time)),
+            ("Exit Velocity", "{:.3f}".format(max(array))),
             ("Total Time", "{:.3f}".format(total_time))
         ]
         # loop over the info tuples and draw them on our frame
@@ -98,7 +108,6 @@ def main():
             break
 
     vs.release()
+    writer.release()
     cv2.destroyAllWindows()
-    initial_velocity, final_velocity = exit_velocity(initial_time, 10)
-    writing_data(file, initial_velocity, post_time, player_name, total_time)
 main()
